@@ -22,6 +22,14 @@ cleaned as (
     where date is not null
       and close is not null
       and close > 0
+),
+
+deduped as (
+    select *,
+        row_number() over (partition by ticker, trade_date order by trade_date) as row_num
+    from cleaned
 )
 
-select * from cleaned
+select * except(row_num)
+from deduped
+where row_num = 1
