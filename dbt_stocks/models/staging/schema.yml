@@ -1,0 +1,16 @@
+version: 2
+
+sources:
+  - name: raw
+    database: "{{ env_var('GCP_PROJECT_ID') }}"
+    schema: "{{ env_var('BQ_DATASET', 'stock_market') }}"
+    tables:
+      - name: raw_stock_prices
+        description: "Raw stock price data loaded from Yahoo Finance via GCS"
+        columns:
+          - name: date
+            description: "Trading date"
+          - name: ticker
+            description: "Stock ticker symbol"
+          - name: close
+            description: "Closing price"
