@@ -2,6 +2,7 @@ import os
 from datetime import datetime, timedelta
 
 from airflow import DAG
+from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
 
 import sys
@@ -43,6 +44,34 @@ def _upload_to_gcs(**context):
     context["ti"].xcom_push(key="gcs_uri", value=gcs_uri)
 
 
+def _gcs_to_bigquery(**context):
+    from google.cloud import bigquery
+
+    gcs_uri = context["ti"].xcom_pull(
+        task_ids="upload_to_gcs", key="gcs_uri"
+    )
+
+    client = bigquery.Client(project=GCP_PROJECT_ID)
+    table_id = f"{GCP_PROJECT_ID}.{BQ_DATASET}.raw_stock_prices"
+
+    job_config = bigquery.LoadJobConfig(
+        source_format=bigquery.SourceFormat.PARQUET,
+        write_disposition=bigquery.WriteDisposition.WRITE_APPEND,
+        time_partitioning=bigquery.TimePartitioning(
+            type_=bigquery.TimePartitioningType.DAY,
+            field="date",
+        ),
+        clustering_fields=["ticker", "sector"],
+    )
+
+    print(f"Loading {gcs_uri} into {table_id}")
+    load_job = client.load_table_from_uri(gcs_uri, table_id, job_config=job_config)
+    load_job.result()
+
+    table = client.get_table(table_id)
+    print(f"Loaded {table.num_rows} rows into {table_id}")
+
+
 with DAG(
     dag_id="stock_market_pipeline",
     default_args=default_args,
@@ -63,4 +92,25 @@ with DAG(
         python_callable=_upload_to_gcs,
     )
 
-    fetch_task >> upload_task
+    load_bq_task = PythonOperator(
+        task_id="gcs_to_bigquery",
+        python_callable=_gcs_to_bigquery,
+    )
+
+    dbt_run_task = BashOperator(
+        task_id="dbt_run",
+        bash_command=(
+            "cd /opt/airflow/dbt_stocks && "
+            "dbt run --profiles-dir . --project-dir . --target prod"
+        ),
+    )
+
+    dbt_test_task = BashOperator(
+        task_id="dbt_test",
+        bash_command=(
+            "cd /opt/airflow/dbt_stocks && "
+            "dbt test --profiles-dir . --project-dir . --target prod"
+        ),
+    )
+
+    fetch_task >> upload_task >> load_bq_task >> dbt_run_task >> dbt_test_task
