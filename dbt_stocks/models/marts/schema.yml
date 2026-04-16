@@ -1,0 +1,53 @@
+version: 2
+
+models:
+  - name: fct_daily_returns
+    description: "Daily stock returns with cumulative performance metrics"
+    tests:
+      - unique:
+          column_name: "concat(cast(trade_date as string), '-', ticker)"
+    columns:
+      - name: trade_date
+        tests:
+          - not_null
+      - name: ticker
+        tests:
+          - not_null
+      - name: close_price
+        tests:
+          - not_null
+      - name: daily_return_pct
+        description: "Daily percentage return based on close prices"
+
+  - name: fct_moving_averages
+    description: "Stock prices with 7/30/90 day moving averages and volatility"
+    tests:
+      - unique:
+          column_name: "concat(cast(trade_date as string), '-', ticker)"
+    columns:
+      - name: trade_date
+        tests:
+          - not_null
+      - name: ticker
+        tests:
+          - not_null
+      - name: close_price
+        tests:
+          - not_null
+      - name: sma_7
+        description: "7-day simple moving average"
+      - name: sma_30
+        description: "30-day simple moving average"
+
+  - name: fct_sector_performance
+    description: "Aggregated sector-level performance metrics"
+    tests:
+      - unique:
+          column_name: "concat(cast(trade_date as string), '-', sector)"
+    columns:
+      - name: trade_date
+        tests:
+          - not_null
+      - name: sector
+        tests:
+          - not_null

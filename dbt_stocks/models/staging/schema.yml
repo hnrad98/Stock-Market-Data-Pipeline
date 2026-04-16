@@ -14,3 +14,26 @@ sources:
             description: "Stock ticker symbol"
           - name: close
             description: "Closing price"
+
+models:
+  - name: stg_stock_prices
+    description: "Cleaned and standardized stock price data"
+    tests:
+      - unique:
+          column_name: "concat(cast(trade_date as string), '-', ticker)"
+    columns:
+      - name: trade_date
+        tests:
+          - not_null
+      - name: ticker
+        tests:
+          - not_null
+      - name: sector
+        tests:
+          - not_null
+      - name: close_price
+        tests:
+          - not_null
+      - name: volume
+        tests:
+          - not_null
