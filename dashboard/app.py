@@ -125,9 +125,11 @@ if not filtered_returns.empty:
     col3.metric("Avg Daily Return", f"{latest['daily_return_pct'].mean():.2f}%")
     col4.metric("Total Stocks", len(selected_tickers))
 
-tab1, tab2 = st.tabs([
+tab1, tab2, tab3, tab4 = st.tabs([
     "Price & Moving Averages",
     "Returns Analysis",
+    "Sector Performance",
+    "Volume Analysis",
 ])
 
 with tab1:
@@ -210,6 +212,59 @@ with tab2:
         )
         fig_hist.update_layout(height=400)
         st.plotly_chart(fig_hist, use_container_width=True)
+
+with tab3:
+    st.subheader("Sector Performance Over Time")
+
+    if not filtered_sector.empty:
+        fig_sec = px.line(
+            filtered_sector.sort_values("trade_date"),
+            x="trade_date", y="cumulative_return", color="sector",
+            title="Cumulative Sector Returns",
+            template="plotly_dark",
+        )
+        fig_sec.update_layout(height=400)
+        st.plotly_chart(fig_sec, use_container_width=True)
+
+    st.subheader("Sector Daily Rankings")
+    if not filtered_sector.empty:
+        latest_sector = filtered_sector[
+            filtered_sector["trade_date"] == filtered_sector["trade_date"].max()
+        ].sort_values("avg_daily_return", ascending=False)
+
+        fig_bar = px.bar(
+            latest_sector, x="sector", y="avg_daily_return",
+            color="avg_daily_return",
+            color_continuous_scale="RdYlGn",
+            title="Latest Sector Average Returns (%)",
+            template="plotly_dark",
+        )
+        fig_bar.update_layout(height=400)
+        st.plotly_chart(fig_bar, use_container_width=True)
+
+with tab4:
+    st.subheader("Trading Volume Analysis")
+
+    if not filtered_returns.empty:
+        fig_vol = px.bar(
+            filtered_returns.sort_values("trade_date"),
+            x="trade_date", y="volume", color="ticker",
+            title="Daily Trading Volume",
+            template="plotly_dark",
+        )
+        fig_vol.update_layout(height=400, barmode="stack")
+        st.plotly_chart(fig_vol, use_container_width=True)
+
+    st.subheader("Volume vs Returns")
+    if not filtered_returns.empty:
+        fig_scatter = px.scatter(
+            filtered_returns, x="volume", y="daily_return_pct",
+            color="ticker", size="daily_range_pct",
+            title="Volume vs Daily Return (size = price range %)",
+            template="plotly_dark", opacity=0.6,
+        )
+        fig_scatter.update_layout(height=400)
+        st.plotly_chart(fig_scatter, use_container_width=True)
 
 st.markdown("---")
 st.caption(

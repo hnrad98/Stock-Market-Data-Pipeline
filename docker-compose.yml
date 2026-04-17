@@ -90,5 +90,19 @@ services:
       airflow-init:
         condition: service_completed_successfully
 
+  dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+    ports:
+      - "8501:8501"
+    environment:
+      GCP_PROJECT_ID: ${GCP_PROJECT_ID}
+      BQ_DATASET: ${BQ_DATASET}
+      GOOGLE_APPLICATION_CREDENTIALS: /app/keys/gcp-key.json
+    volumes:
+      - ${GCP_KEY_PATH:-./keys}:/app/keys:ro
+    restart: always
+
 volumes:
   postgres-db-volume:

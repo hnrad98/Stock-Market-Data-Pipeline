@@ -27,6 +27,18 @@ def upload_to_gcs(
     return gcs_uri
 
 
+def upload_directory_to_gcs(
+    local_dir: str,
+    bucket_name: str | None = None,
+    destination_blob_prefix: str = "raw/stocks",
+) -> list[str]:
+    uris = []
+    for path in sorted(Path(local_dir).glob("*.parquet")):
+        uri = upload_to_gcs(str(path), bucket_name, destination_blob_prefix)
+        uris.append(uri)
+    return uris
+
+
 if __name__ == "__main__":
     import sys
     if len(sys.argv) < 2:
